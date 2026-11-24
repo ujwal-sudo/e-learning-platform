@@ -1,6 +1,7 @@
 import "server-only";
 import catalogueJson from "@/lib/library/catalogue.json";
 import { getDocument, saveDocument, savePagesAndChunks } from "@/lib/store/repo";
+import { cleanChapterText } from "@/lib/tutor/text";
 import type { Chunk, PageText, SourceDocument } from "@/lib/tutor/types";
 import { HttpError } from "./http";
 
@@ -71,7 +72,7 @@ export async function importChapter(chapterId: string): Promise<SourceDocument> 
   const docTitle = `${book.title} — ${title}`;
   const chunks: Chunk[] = [];
   ids.forEach((id, i) => {
-    const text = vectors[id]?.metadata?.text;
+    const text = cleanChapterText(vectors[id]?.metadata?.text ?? "");
     if (!text) return;
     chunks.push({
       id: `${docId}-${i}`,
@@ -115,4 +116,15 @@ export async function importChapter(chapterId: string): Promise<SourceDocument> 
   doc.parts = await savePagesAndChunks(doc, pages, chunks);
   await saveDocument(doc);
   return doc;
+}
+
+/** Like getDocument, but a library chapter missing from storage (e.g. serverless /tmp was cleared) is re-imported by id. */
+export async function getOrImportDocument(id: string): Promise<SourceDocument | null> {
+  const doc = await getDocument(id);
+  if (doc || !id.startsWith("lib-")) return doc;
+  try {
+    return await importChapter(id.slice(4));
+  } catch {
+    return null;
+  }
 }

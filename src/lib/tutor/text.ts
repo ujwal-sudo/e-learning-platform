@@ -129,3 +129,15 @@ export function splitSentences(text: string): string[] {
 }
 
 export { STOPWORDS };
+
+/** Strips PDF-to-markdown debris (picture-text markers, bold stars, <br>) that library chapters carry. Idempotent. */
+export function cleanChapterText(text: string): string {
+  return text
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/-{2,}\s*(start|end) of picture text\s*-{2,}>?/gi, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/\*{1,3}/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}

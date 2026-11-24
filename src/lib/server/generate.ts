@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { getAiConfig, type LlmConfig } from "@/lib/ai/config";
+import { fallbackLlm, getAiConfig, type LlmConfig } from "@/lib/ai/config";
 import { AiError } from "@/lib/ai/client";
 import { buildSources, embedTexts, generateQuestions, judgeGrounding } from "@/lib/ai/tasks";
 import { DEMO_BANK } from "@/lib/tutor/demo-textbook";
@@ -9,7 +9,8 @@ import { inScope, selectContext } from "@/lib/tutor/retrieve";
 import type { Chunk, Question, Quiz, QuizConfig, SourceDocument } from "@/lib/tutor/types";
 import { TYPE_LABEL } from "@/lib/tutor/types";
 import { dedupeQuestions, validateQuestion } from "@/lib/tutor/validate";
-import { getChunks, getDocument, getQuiz, saveQuiz } from "@/lib/store/repo";
+import { getChunks, getQuiz, saveQuiz } from "@/lib/store/repo";
+import { getOrImportDocument } from "./library";
 import { HttpError, type Emit } from "./http";
 
 function scopeLabel(doc: SourceDocument, config: QuizConfig): string {
@@ -20,7 +21,7 @@ function scopeLabel(doc: SourceDocument, config: QuizConfig): string {
 }
 
 async function loadScoped(config: QuizConfig) {
-  const doc = await getDocument(config.documentId);
+  const doc = await getOrImportDocument(config.documentId);
   if (!doc) throw new HttpError(404, "That source document no longer exists. It may have been deleted, or temporary storage was cleared.");
   if (doc.status !== "ready") throw new HttpError(409, "That document is not ready yet. Wait for indexing to finish, or re-upload it.");
   const chunks = await getChunks(doc);
@@ -105,18 +106,32 @@ export async function generateQuiz(config: QuizConfig, emit: Emit, opts: { force
   let raw: Question[];
   const warnings: string[] = [];
   if (ai.llm) {
-    try {
-      const out = await generateQuestions(ai.llm, {
-        config,
-        quizId,
-        plan: planTypeCounts(config.questionTypes, config.questionCount),
-        sources: buildSources(selection.chunks),
-      });
-      raw = out.questions;
-      warnings.push(...out.warnings.map((w) => `Model note: ${w}`));
-    } catch (err) {
-      if (err instanceof AiError) throw new HttpError(502, err.userMessage, { canUseDemo: true, kind: err.kind });
-      throw err;
+    // Brief provider outages (503/429) are common on free tiers: retry, then try a second Gemini model.
+    const attempts = [ai.llm, ai.llm, ...fallbackLlm(ai.llm)];
+    let lastErr: unknown = null;
+    raw = [];
+    for (const [i, cfg] of attempts.entries()) {
+      try {
+        const out = await generateQuestions(cfg, {
+          config,
+          quizId,
+          plan: planTypeCounts(config.questionTypes, config.questionCount),
+          sources: buildSources(selection.chunks),
+        });
+        raw = out.questions;
+        warnings.push(...out.warnings.map((w) => `Model note: ${w}`));
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        const transient = err instanceof AiError && ["unavailable", "rate_limit", "timeout"].includes(err.kind);
+        if (!transient) break;
+        if (i < attempts.length - 1) await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+      }
+    }
+    if (lastErr) {
+      if (lastErr instanceof AiError) throw new HttpError(502, lastErr.userMessage, { canUseDemo: true, kind: lastErr.kind });
+      throw lastErr;
     }
   } else if (doc.isDemo) {
     const out = generateFromBank(config, quizId, chunks);

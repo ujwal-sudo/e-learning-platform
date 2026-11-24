@@ -5,7 +5,7 @@ import * as library from "@/app/api/library/route";
 import { getChunks } from "@/lib/store/repo";
 import catalogue from "@/lib/library/catalogue.json";
 
-const book = (catalogue as { chapters: [string, number, string, number][] }[]).find((b) => b.chapters.some((c) => c[3] >= 2))!;
+const book = (catalogue as unknown as { chapters: [string, number, string, number][] }[]).find((b) => b.chapters.some((c) => c[3] >= 2))!;
 const [chapterId, , title, count] = book.chapters.find((c) => c[3] >= 2)!;
 const post = (body: unknown) =>
   new NextRequest("http://test/api/library", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" } });

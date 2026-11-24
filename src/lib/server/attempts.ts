@@ -7,8 +7,9 @@ import { hash } from "@/lib/tutor/plan";
 import { demoEvaluate, scoreFillBlank, scoreMcq } from "@/lib/tutor/score";
 import type { AnswerEvaluation, AnswerInput, Attempt, Question, Quiz, StudentQuestion } from "@/lib/tutor/types";
 import { quizStartProblems } from "@/lib/tutor/validate";
-import { getAttempt, getChunks, getDocument, getQuiz, saveAttempt, saveQuiz } from "@/lib/store/repo";
+import { getAttempt, getChunks, getQuiz, saveAttempt, saveQuiz } from "@/lib/store/repo";
 import { HttpError } from "./http";
+import { getOrImportDocument } from "./library";
 
 /** Removes everything a student must not see before submitting: keys, rubrics, evidence. */
 export function toStudentQuestion(q: Question, order?: string[]): StudentQuestion {
@@ -76,7 +77,7 @@ async function evidenceFor(q: Question): Promise<string> {
   const parts: string[] = [];
   if (q.passage) parts.push(q.passage.text);
   for (const ref of q.sourceRefs) {
-    const doc = await getDocument(ref.documentId);
+    const doc = await getOrImportDocument(ref.documentId);
     const chunk = doc ? (await getChunks(doc)).find((c) => c.id === ref.chunkId) : undefined;
     parts.push(chunk ? chunk.text : ref.quote);
   }

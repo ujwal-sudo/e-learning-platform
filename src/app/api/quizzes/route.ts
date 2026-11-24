@@ -10,6 +10,7 @@ export const GET = handle(async () => {
       const last = done[0];
       return {
         id: q.id,
+        documentIds: q.documentIds,
         title: q.title,
         createdAt: q.createdAt,
         status: q.status,

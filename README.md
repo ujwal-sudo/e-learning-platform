@@ -7,6 +7,8 @@ A working prototype with two learning modules behind one entry point:
 | **Textbook AI Tutor** (`/tutor`) | Teachers, tutors, Classes 1–10 (demo: Class 1 English) | Upload a textbook PDF (or use the built-in demo reader), choose question types / count / difficulty / scope, generate **source-grounded** questions, review and edit them with page citations, run the quiz, and score it. |
 | **Early Learning Studio** (`/early`) | LKG–UKG children with an adult nearby | English A–Z and a curated Hindi set. Hear each letter and its picture words, then trace it with finger, stylus or mouse and get gentle spoken feedback. |
 
+**New:** a chapter-first study hub (`/tutor` → *Study a chapter*) over the Maharashtra Board + NCERT library — see [DEMO.md](DEMO.md).
+
 No accounts. Works fully **without an API key** in a clearly labelled demo mode; add a key to switch question
 writing and open-answer grading to a live model.
 

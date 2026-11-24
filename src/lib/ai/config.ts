@@ -16,7 +16,7 @@ export const PRESETS: Record<ProviderId, Preset> = {
   gemini: {
     label: "Google Gemini",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    model: "gemini-2.5-flash",
+    model: "gemini-3.5-flash",
     embedModel: "gemini-embedding-001",
     keyEnv: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     keyPrefix: /^AIza/,
@@ -167,4 +167,11 @@ export function publicAiStatus() {
     embeddingModel: c.embeddings?.model ?? null,
     groundingJudge: c.llm?.judge ?? false,
   };
+}
+
+/** A second model to try when the first is overloaded (Gemini only; other providers have no obvious twin). */
+export function fallbackLlm(llm: LlmConfig): LlmConfig[] {
+  if (llm.provider !== "gemini" || env("LLM_MODEL_FALLBACK") === "none") return [];
+  const model = env("LLM_MODEL_FALLBACK") || (/lite/.test(llm.model) ? "gemini-3.5-flash" : "gemini-3.5-flash-lite");
+  return model === llm.model ? [] : [{ ...llm, model }];
 }

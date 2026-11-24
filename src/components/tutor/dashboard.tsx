@@ -27,6 +27,7 @@ import { startQuiz } from "@/lib/client/quiz";
 import { cn } from "@/lib/cn";
 import type { Quiz, SourceDocument } from "@/lib/tutor/types";
 import { PageHeader, timeAgo } from "./chrome";
+import { RecentChapters } from "./recent-chapters";
 import { LibraryPanel } from "./library-panel";
 import { UploadPanel } from "./upload-panel";
 
@@ -92,7 +93,12 @@ function DocRow({ doc, highlight, onDelete }: { doc: SourceDocument; highlight: 
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         {!failed && (
           <>
-            <LinkButton variant="secondary" size="sm" href={`/tutor/study/${doc.id}`} icon={<Cards className="size-4" />}>
+            {doc.id.startsWith("lib-") && (
+            <LinkButton size="sm" href={`/tutor/learn/${doc.id}`} icon={<Cards className="size-4" />}>
+              Study
+            </LinkButton>
+          )}
+          <LinkButton variant="secondary" size="sm" href={`/tutor/study/${doc.id}`} icon={<Cards className="size-4" />}>
               Study studio
             </LinkButton>
             <LinkButton variant="secondary" size="sm" href={`/tutor/document/${doc.id}`} icon={<Eye className="size-4" />}>
@@ -219,8 +225,8 @@ export function TutorDashboard() {
   return (
     <div className="space-y-12">
       <PageHeader
-        title="Your workspace"
-        description="Pick a source, build a quiz from it, check every question against its page, then hand it to a student."
+        title="Study workspace"
+        description="Study any chapter with a summary, flashcards, Q&A and quizzes — or build a quiz from a source, check every question against its page, then hand it to a student."
         actions={
           <LinkButton href="/tutor/generate?doc=demo-reader" icon={<Sparkle weight="fill" className="size-4" />}>
             New quiz
@@ -233,6 +239,14 @@ export function TutorDashboard() {
           {error}
         </Notice>
       )}
+
+      <RecentChapters />
+      <LibraryPanel
+        onChanged={(id) => {
+          setHighlight(id ?? null);
+          void load();
+        }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-12">
         <section aria-labelledby="sources-heading" className="lg:col-span-7">
@@ -254,12 +268,6 @@ export function TutorDashboard() {
           )}
         </section>
         <div className="space-y-6 lg:col-span-5">
-          <LibraryPanel
-            onChanged={(id) => {
-              setHighlight(id ?? null);
-              void load();
-            }}
-          />
           {status ? (
             <UploadPanel
               maxMb={status.limits.maxMb}

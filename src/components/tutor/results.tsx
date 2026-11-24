@@ -131,6 +131,11 @@ export function QuizResults({ id }: { id: string }) {
             <Button onClick={retake} loading={retaking} icon={<ArrowCounterClockwise weight="bold" className="size-4" />}>
               Try again
             </Button>
+            {items[0]?.question.sourceRefs[0]?.documentId.startsWith("lib-") && (
+              <LinkButton variant="secondary" href={`/tutor/learn/${items[0].question.sourceRefs[0].documentId}?tab=quiz`} icon={<Sparkle className="size-4" />}>
+                Back to chapter
+              </LinkButton>
+            )}
             <LinkButton variant="secondary" href={`/tutor/review/${data.quiz.id}`} icon={<ListChecks className="size-4" />}>
               Teacher view
             </LinkButton>

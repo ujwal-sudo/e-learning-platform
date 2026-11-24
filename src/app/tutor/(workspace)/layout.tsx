@@ -14,7 +14,7 @@ export default function TutorWorkspaceLayout({ children }: LayoutProps<"/tutor">
             <BrandMark tone="accent" />
             <span className="hidden leading-tight sm:block">
               <span className="block font-display text-[1.05rem] font-semibold tracking-tight">Textbook AI Tutor</span>
-              <span className="block text-xs text-ink-3">Teacher workspace</span>
+              <span className="block text-xs text-ink-3">Study workspace</span>
             </span>
           </Link>
           <div className="ml-2 sm:ml-6">

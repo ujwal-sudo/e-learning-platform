@@ -1,9 +1,11 @@
 import type { NextRequest } from "next/server";
 import { HttpError, handle } from "@/lib/server/http";
+import { getOrImportDocument } from "@/lib/server/library";
 import { deleteDocument, getChunks, getDocument, getPages } from "@/lib/store/repo";
 
 const PREVIEW_CHARS = 600;
 const PAGE_CHARS = 4000;
+const LIBRARY_PAGE_CHARS = 60_000; // a library chapter is one "page"; students read it whole
 
 /**
  * GET /api/documents/:id — status, counts and a limited text preview.
@@ -11,17 +13,18 @@ const PAGE_CHARS = 4000;
  */
 export const GET = handle(async (req: NextRequest, ctx: RouteContext<"/api/documents/[id]">) => {
   const { id } = await ctx.params;
-  const doc = await getDocument(id);
+  const doc = await getOrImportDocument(id);
   if (!doc) throw new HttpError(404, "Document not found. It may have been deleted, or temporary storage was cleared.");
   if (doc.status !== "ready") return Response.json({ document: doc, pages: [], chunks: { count: 0, sample: [] } });
 
   const [pages, chunks] = await Promise.all([getPages(doc), getChunks(doc)]);
   const pageParam = Number(req.nextUrl.searchParams.get("page"));
   if (pageParam) {
+    const cap = doc.id.startsWith("lib-") ? LIBRARY_PAGE_CHARS : PAGE_CHARS;
     const page = pages.find((p) => p.page === pageParam);
     if (!page) throw new HttpError(404, `Page ${pageParam} is not in this document.`);
     return Response.json({
-      page: { page: page.page, chapter: page.chapter, text: page.text.slice(0, PAGE_CHARS), truncated: page.text.length > PAGE_CHARS },
+      page: { page: page.page, chapter: page.chapter, text: page.text.slice(0, cap), truncated: page.text.length > cap },
       chunks: chunks.filter((c) => c.pageNumber === page.page).map((c) => ({ id: c.id, chunkIndex: c.chunkIndex, tokenEstimate: c.tokenEstimate })),
     });
   }

@@ -14,7 +14,8 @@
     "assets:glyphs": "node scripts/build-hindi-glyphs.mjs",
     "assets:pictures": "tsx scripts/fetch-pictures.mts",
     "assets:samples": "tsx scripts/make-sample-pdfs.mts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "warm": "node scripts/warm-library.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
